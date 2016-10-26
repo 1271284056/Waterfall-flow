@@ -36,11 +36,10 @@ static const UIEdgeInsets DefaultEdgeInsets = {0, 0, 0, 0};
  */
 - (void)prepareLayout {
     [super prepareLayout];
-    
     self.contentHeight = 0;
-    
     //清除以前计算的所有高度
     [self.columnHeights removeAllObjects];
+    //记录每一列的高度 一共3列
     for (NSInteger i = 0; i < DefaultColumnCount; i++) {
         [self.columnHeights addObject:@(DefaultEdgeInsets.top)];
         //        NSLog(@"%f",self.edgeInsets.top);
@@ -54,41 +53,40 @@ static const UIEdgeInsets DefaultEdgeInsets = {0, 0, 0, 0};
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:i inSection:0];
         //获取indexPath位置cell对应的布局属性
         UICollectionViewLayoutAttributes *attrs = [self layoutAttributesForItemAtIndexPath:indexPath];
+        
         [self.attrsArray addObject:attrs];
     }
 }
 
 
 /**
- *  决定cell的布局
+ *  决定cell的布局  prepareLayout后会调用一次,下面方法调用完毕修改cell属性后会再一次调用这个方法
  */
 - (NSArray *)layoutAttributesForElementsInRect:(CGRect)rect {
     return self.attrsArray;
 }
 
 /**
- *  返回indexPath位置cell对应的布局属性
+ *  返回每一个位置cell对应的布局属性 修改 self.attrsArray里面cell的属性,这个方法执行后再调用上一个方法
  */
 - (UICollectionViewLayoutAttributes *)layoutAttributesForItemAtIndexPath:(NSIndexPath *)indexPath {
-    
     //创建布局属性
     UICollectionViewLayoutAttributes *attrs = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
-    
     //collectionView的宽度
     CGFloat collectionViewW = self.collectionView.frame.size.width;
-    
     //设置布局属性的frame
     CGFloat w = (collectionViewW - DefaultEdgeInsets.left - DefaultEdgeInsets.right - (DefaultColumnCount - 1) * DefaultRowMargin) / DefaultColumnCount;
     CGFloat h = [self.delegate waterflowlayout:self heightForItemAtIndex:indexPath.item itemWidth:w];
     
+#pragma 核心代码
     //找出高度最短的那一列
     NSInteger destColumn = 0;
+    //默认第一列最短
     CGFloat minColumnHeight = [self.columnHeights[0] doubleValue];
     for (NSInteger i = 0; i < DefaultColumnCount; i++) {
         //取得第i列的高度
         CGFloat columnHeight = [self.columnHeights[i] doubleValue];
-//        NSLog(@"%f",columnHeight);
-        
+        //minColumnHeight是最短那一列的高度,destColumn最短那一列
         if (minColumnHeight > columnHeight) {
             minColumnHeight = columnHeight;
             destColumn = i;
@@ -100,10 +98,8 @@ static const UIEdgeInsets DefaultEdgeInsets = {0, 0, 0, 0};
         y += DefaultRowMargin;
     }
     attrs.frame = CGRectMake(x, y, w, h);
-    
     //更新最短那列的高度
     self.columnHeights[destColumn] = @(CGRectGetMaxY(attrs.frame));
-    
     //记录内容的高度
     CGFloat columnHeight = [self.columnHeights[destColumn] doubleValue];
     if (self.contentHeight < columnHeight) {
